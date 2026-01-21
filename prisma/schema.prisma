@@ -24,7 +24,7 @@ model Dealer {
 model ServiceSchedule {
   id             String            @id @default(uuid())
   serviceDate    DateTime          @map("service_date") @db.Date
-  serviceTime    DateTime          @map("service_time") @db.Time(0)
+  serviceTime    String            @map("service_time") @db.Char(8)
   quota          Int               @db.UnsignedInt
   remainingQuota Int               @map("remaining_quota") @db.UnsignedInt
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamp(0)
