@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Dealer {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(100)
+  username  String   @unique @db.VarChar(50)
+  password  String   @db.VarChar(255)
+  address   String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  @@map("dealers")
+}
+
+model ServiceSchedule {
+  id             String            @id @default(uuid())
+  serviceDate    DateTime          @map("service_date") @db.Date
+  serviceTime    DateTime          @map("service_time") @db.Time(0)
+  quota          Int               @db.UnsignedInt
+  remainingQuota Int               @map("remaining_quota") @db.UnsignedInt
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  bookings       ServiceBooking[]
+  
+  @@unique([serviceDate, serviceTime], name: "uniq_schedule")
+  @@map("service_schedules")
+}
+
+model ServiceBooking {
+  id                String          @id @default(uuid())
+  serviceScheduleId String          @map("service_schedule_id")
+  customerName      String          @map("customer_name") @db.VarChar(100)
+  phoneNo           String          @map("phone_no") @db.VarChar(20)
+  vehicleType       String          @map("vehicle_type") @db.VarChar(50)
+  licensePlate      String          @map("license_plate") @db.VarChar(20)
+  vehicleProblem    String          @map("vehicle_problem") @db.Text
+  status            BookingStatus   @default(menunggu_konfirmasi)
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt         DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  serviceSchedule   ServiceSchedule @relation(fields: [serviceScheduleId], references: [id])
+
+  @@index([serviceScheduleId], name: "idx_schedule")
+  @@map("service_bookings")
+}
+
+enum BookingStatus {
+  menunggu_konfirmasi
+  konfirmasi_batal
+  konfirmasi_datang
+  tidak_datang
+  datang
+}
