@@ -34,38 +34,29 @@ async function serviceScheduleSeed() {
       return date;
     };
 
-    const serviceTimes = ['09:00:00', '11:00:00', '13:00:00', '15:00:00', '17:00:00'];
-
     for (let day = 1; day <= 7; day++) {
       const serviceDate = createDate(day - 1);
 
-      for (const timeSlot of serviceTimes) {
-        const serviceTime = safeTime(timeSlot);
-
         let quota = 10;
 
-        const hour = Number(timeSlot.slice(0, 2));
-
-        if (day === 1 && hour === 9) {
+        if (day === 1 ) {
           quota = 5;
-        } else if (day === 2 && hour === 11) {
+        } else if (day === 2) {
           quota = 15;
-        } else if (day === 3 && hour === 13) {
+        } else if (day === 3) {
           quota = 3;
         }
 
         await prisma.serviceSchedule.create({
           data: {
             serviceDate,
-            serviceTime,
             quota,
             remainingQuota: quota,
           },
         });
-      }
     }
 
-    console.log(`Created ${7 * serviceTimes.length}`);
+    console.log(`Created service schedule data successfully.`);
   } catch (e) {
     console.error('Error seeding service schedules:', e);
   }

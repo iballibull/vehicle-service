@@ -24,7 +24,6 @@ model Dealer {
 model ServiceSchedule {
   id             String            @id @default(uuid())
   serviceDate    DateTime          @map("service_date") @db.Date
-  serviceTime    String            @map("service_time") @db.Char(8)
   quota          Int               @db.UnsignedInt
   remainingQuota Int               @map("remaining_quota") @db.UnsignedInt
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamp(0)
@@ -32,7 +31,7 @@ model ServiceSchedule {
 
   bookings       ServiceBooking[]
   
-  @@unique([serviceDate, serviceTime], name: "uniq_schedule")
+  @@unique([serviceDate], name: "uniq_schedule")
   @@map("service_schedules")
 }
 
@@ -44,6 +43,7 @@ model ServiceBooking {
   vehicleType       String          @map("vehicle_type") @db.VarChar(50)
   licensePlate      String          @map("license_plate") @db.VarChar(20)
   vehicleProblem    String          @map("vehicle_problem") @db.Text
+  scheduleTime      String          @map("schedule_time") @db.Char(8)
   status            BookingStatus   @default(menunggu_konfirmasi)
   createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt         DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
