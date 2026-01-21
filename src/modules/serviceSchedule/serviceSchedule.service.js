@@ -73,7 +73,7 @@ const updateServiceSchedule = async (request) => {
 
   const isDateChange = request.serviceDate !== serviceSchedule.serviceDate.toISOString().split('T')[0];
 
-  if (isDateChange && activeBookingCount > 0) {
+  if (isDateChange && !activeBookingCount) {
     throw new ResponseError(400, CANNOT_UPDATE_SCHEDULE, [
       {
         schedule: [`cannot change date, there are ${activeBookingCount} active bookings on this schedule.`],
@@ -81,21 +81,28 @@ const updateServiceSchedule = async (request) => {
     ]);
   }
 
-  request.serviceDate = safeDate(request.serviceDate);
+  let scheduleWithDate;
 
-  const scheduleWithDate = await serviceScheduleRepository.findServiceScheduleByDate(request.serviceDate);
+  if (request.serviceDate) {
+    request.serviceDate = safeDate(request.serviceDate);
+    scheduleWithDate = await serviceScheduleRepository.findServiceScheduleByDate(request.serviceDate);
+  }
 
   if (scheduleWithDate && scheduleWithDate.id !== request.id) {
     throw new ResponseError(400, SCHEDULE_EXISTS, [{ serviceDate: 'schedule already exists for the given date.' }]);
   }
 
-  const newRemainingQuota = request.quota - activeBookingCount;
+  let newRemainingQuota = 0;
+
+  if (request.quota) {
+    newRemainingQuota = request.quota - activeBookingCount;
+  }
 
   return serviceScheduleRepository.updateServiceSchedule({
     id: request.id,
-    serviceDate: request.serviceDate,
-    quota: request.quota,
-    remainingQuota: newRemainingQuota,
+    serviceDate: request.serviceDate || serviceSchedule.serviceDate,
+    quota: request.quota ?? serviceSchedule.quota,
+    remainingQuota: newRemainingQuota ?? serviceSchedule.remainingQuota,
   });
 };
 
