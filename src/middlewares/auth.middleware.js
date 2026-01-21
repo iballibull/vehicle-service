@@ -18,6 +18,10 @@ const authenticateToken = (req, res, next) => {
 
     next();
   } catch (err) {
+    if (err.name === 'TokenExpiredError' || err.name === 'JsonWebTokenError') {
+      throw new ResponseError(401, UNAUTHORIZED_ERROR, [{ token: err.message }]);
+    }
+
     next(err);
   }
 };

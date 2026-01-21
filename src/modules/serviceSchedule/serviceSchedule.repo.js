@@ -6,20 +6,21 @@ const findServiceScheduleById = async (id) => {
     where: {
       id,
     },
+    include: {
+      bookings: {
+        orderBy: { createdAt: 'asc' },
+      },
+    },
   });
 
   return serviceSchedule;
 };
 
 const findServiceScheduleByIdAvailable = async (id) => {
-  const where = {
-    remainingQuota: { gt: 0 },
-  };
-
   const minAllowedDate = startOfDay(new Date());
   minAllowedDate.setDate(minAllowedDate.getDate() + 1);
 
-  const serviceSchedule = await prisma.serviceSchedule.findUnique({
+  const serviceSchedule = await prisma.serviceSchedule.findFirst({
     where: {
       id,
       serviceDate: { gte: minAllowedDate },
@@ -30,36 +31,36 @@ const findServiceScheduleByIdAvailable = async (id) => {
   return serviceSchedule;
 };
 
-const findAllServiceSchedules = async ({ startDate, endDate, startTime, endTime, page = 1, perPage = 10 }) => {
+const findAllServiceSchedules = async ({ startDate, endDate, page = 1, perPage = 10 }) => {
   const where = {};
 
-  if (startDate && endDate) {
-    where.serviceDate = { gte: startDate, lte: endDate };
-  } else if (startDate) {
-    where.serviceDate = { gte: startDate, lte: startDate };
-  } else if (endDate) {
-    where.serviceDate = { lte: endDate, gte: endDate };
+  if (startDate && !endDate) {
+    endDate = startDate;
   }
 
-  if (startTime && endTime) {
-    where.serviceTime = { gte: startTime, lte: endTime };
-  } else if (startTime) {
-    where.serviceTime = { gte: startTime, lte: startTime };
-  } else if (endTime) {
-    where.serviceTime = { lte: endTime, gte: endTime };
+  if (!startDate && endDate) {
+    startDate = endDate;
+  }
+
+  if (startDate && endDate) {
+    where.serviceDate = {
+      gte: startDate,
+      lte: endDate,
+    };
   }
 
   const skip = (page - 1) * perPage;
-  const take = perPage;
+  const take = Number(perPage);
 
-  const total = await prisma.serviceSchedule.count({ where });
-
-  const serviceSchedules = await prisma.serviceSchedule.findMany({
-    where,
-    skip,
-    take,
-    orderBy: [{ serviceDate: 'asc' }, { serviceTime: 'asc' }],
-  });
+  const [total, serviceSchedules] = await Promise.all([
+    prisma.serviceSchedule.count({ where }),
+    prisma.serviceSchedule.findMany({
+      where,
+      skip,
+      take,
+      orderBy: [{ serviceDate: 'asc' }],
+    }),
+  ]);
 
   return {
     data: serviceSchedules,
@@ -72,51 +73,58 @@ const findAllServiceSchedules = async ({ startDate, endDate, startTime, endTime,
   };
 };
 
-const findAllServiceSchedulesAvailable = async ({ startDate, endDate, startTime, endTime, page = 1, perPage = 10 }) => {
+const findAllServiceSchedulesAvailable = async ({ startDate, endDate, page = 1, perPage = 10 }) => {
   const where = {
     remainingQuota: { gt: 0 },
   };
 
-  const minAllowedDate = startOfDay(new Date());
-  minAllowedDate.setDate(minAllowedDate.getDate() + 1);
+  const today = startOfDay(new Date());
+  const minAllowedDate = new Date(today);
+  minAllowedDate.setDate(today.getDate() + 1);
 
-  if (startDate && startDate < minAllowedDate) {
-    startDate = minAllowedDate;
+  if ((startDate && startDate < minAllowedDate) || (endDate && endDate < minAllowedDate)) {
+    return {
+      data: [],
+      meta: {
+        total: 0,
+        page,
+        perPage,
+        totalPages: 0,
+      },
+    };
   }
 
-  if (endDate && endDate < minAllowedDate) {
-    endDate = minAllowedDate;
+  if (startDate && !endDate) {
+    endDate = startDate;
+  }
+
+  if (!startDate && endDate) {
+    startDate = endDate;
   }
 
   if (startDate && endDate) {
-    where.serviceDate = { gte: startDate, lte: endDate };
-  } else if (startDate) {
-    where.serviceDate = { gte: startDate, lte: startDate };
-  } else if (endDate) {
-    where.serviceDate = { gte: endDate, lte: endDate };
+    where.serviceDate = {
+      gte: startDate,
+      lte: endDate,
+    };
   } else {
-    where.serviceDate = { gte: minAllowedDate };
-  }
-
-  if (startTime && endTime) {
-    where.serviceTime = { gte: startTime, lte: endTime };
-  } else if (startTime) {
-    where.serviceTime = { gte: startTime, lte: startTime };
-  } else if (endTime) {
-    where.serviceTime = { lte: endTime, gte: endTime };
+    where.serviceDate = {
+      gte: minAllowedDate,
+    };
   }
 
   const skip = (page - 1) * perPage;
-  const take = perPage;
+  const take = Number(perPage);
 
-  const total = await prisma.serviceSchedule.count({ where });
-
-  const serviceSchedules = await prisma.serviceSchedule.findMany({
-    where,
-    skip,
-    take,
-    orderBy: [{ serviceDate: 'asc' }, { serviceTime: 'asc' }],
-  });
+  const [total, serviceSchedules] = await Promise.all([
+    prisma.serviceSchedule.count({ where }),
+    prisma.serviceSchedule.findMany({
+      where,
+      skip,
+      take,
+      orderBy: [{ serviceDate: 'asc' }],
+    }),
+  ]);
 
   return {
     data: serviceSchedules,
@@ -127,6 +135,65 @@ const findAllServiceSchedulesAvailable = async ({ startDate, endDate, startTime,
       totalPages: Math.ceil(total / perPage),
     },
   };
+};
+
+const findServiceScheduleByDate = async (serviceDate) => {
+  const serviceSchedule = await prisma.serviceSchedule.findFirst({
+    where: {
+      serviceDate,
+    },
+  });
+
+  return serviceSchedule;
+};
+
+const createServiceSchedule = async ({ serviceDate, quota, remainingQuota }) => {
+  const newServiceSchedule = await prisma.serviceSchedule.create({
+    data: {
+      serviceDate,
+      quota,
+      remainingQuota,
+    },
+  });
+
+  return newServiceSchedule;
+};
+
+const findServiceScheduleByIdWithBookings = async (id) => {
+  const serviceSchedule = await prisma.serviceSchedule.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: {
+          bookings: {
+            where: {
+              status: { not: 'konfirmasi_batal' },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return serviceSchedule;
+};
+
+const updateServiceSchedule = async ({ id, serviceDate, quota, remainingQuota }) => {
+  const updatedServiceSchedule = await prisma.serviceSchedule.update({
+    where: {
+      id,
+    },
+    data: {
+      serviceDate,
+      quota,
+      remainingQuota,
+    },
+    include: {
+      bookings: true,
+    },
+  });
+
+  return updatedServiceSchedule;
 };
 
 export default {
@@ -134,4 +201,8 @@ export default {
   findAllServiceSchedules,
   findAllServiceSchedulesAvailable,
   findServiceScheduleByIdAvailable,
+  createServiceSchedule,
+  updateServiceSchedule,
+  findServiceScheduleByDate,
+  findServiceScheduleByIdWithBookings,
 };

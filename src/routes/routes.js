@@ -17,5 +17,7 @@ router.get('/available/schedules/:id', serviceScheduleController.findServiceSche
 router.use(authenticateToken);
 router.get('/schedules', serviceScheduleController.fetchServiceSchedule);
 router.get('/schedules/:id', serviceScheduleController.findServiceScheduleById);
+router.post('/schedules', serviceScheduleController.createServiceSchedule);
+router.put('/schedules/:id', serviceScheduleController.updateServiceSchedule);
 
 export default router;

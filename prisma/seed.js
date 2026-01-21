@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import { safeTime } from '../src/utils/time.util.js';
 
 const prisma = new PrismaClient();
 
@@ -37,23 +36,23 @@ async function serviceScheduleSeed() {
     for (let day = 1; day <= 7; day++) {
       const serviceDate = createDate(day - 1);
 
-        let quota = 10;
+      let quota = 10;
 
-        if (day === 1 ) {
-          quota = 5;
-        } else if (day === 2) {
-          quota = 15;
-        } else if (day === 3) {
-          quota = 3;
-        }
+      if (day === 1) {
+        quota = 5;
+      } else if (day === 2) {
+        quota = 15;
+      } else if (day === 3) {
+        quota = 3;
+      }
 
-        await prisma.serviceSchedule.create({
-          data: {
-            serviceDate,
-            quota,
-            remainingQuota: quota,
-          },
-        });
+      await prisma.serviceSchedule.create({
+        data: {
+          serviceDate,
+          quota,
+          remainingQuota: quota,
+        },
+      });
     }
 
     console.log(`Created service schedule data successfully.`);
@@ -62,9 +61,45 @@ async function serviceScheduleSeed() {
   }
 }
 
+async function serviceBookingSeed() {
+  try {
+    console.log('Seeding service booking data.');
+
+    const schedules = await prisma.serviceSchedule.findMany({
+      take: 3,
+    });
+
+    for (const schedule of schedules) {
+      await prisma.serviceBooking.create({
+        data: {
+          serviceScheduleId: schedule.id,
+          customerName: `Customer for ${schedule.serviceDate.toDateString()}`,
+          phoneNo: `0812345${Math.floor(Math.random() * 1000)}`,
+          vehicleType: 'Car',
+          licensePlate: `VEH-${Math.floor(Math.random() * 1000)}`,
+          vehicleProblem: 'Regular maintenance',
+          scheduleTime: '09:00:00',
+        },
+      });
+
+      await prisma.serviceSchedule.update({
+        where: { id: schedule.id },
+        data: {
+          remainingQuota: schedule.remainingQuota - 1,
+        },
+      });
+    }
+
+    console.log('Service booking data seeded successfully.');
+  } catch (e) {
+    console.error('Error seeding service bookings:', e);
+  }
+}
+
 async function main() {
   await dealerSeed();
   await serviceScheduleSeed();
+  await serviceBookingSeed();
 }
 
 main();
