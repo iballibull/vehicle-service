@@ -37,11 +37,22 @@ const getServiceScheduleAvailable = async (request) => {
 };
 
 const findServiceScheduleById = async (request) => {
-  return serviceScheduleRepository.findServiceScheduleById(request.id);
+  const serviceSchedule = await serviceScheduleRepository.findServiceScheduleById(request.id);
+
+  if (!serviceSchedule) {
+    throw new ResponseError(404, NOT_FOUND_ERROR, [{ resources: ['service schedule not found'] }]);
+  }
+
+  return serviceSchedule;
 };
 
 const findServiceScheduleByIdAvailable = async (request) => {
-  return serviceScheduleRepository.findServiceScheduleByIdAvailable(request.id);
+  const serviceSchedule = await serviceScheduleRepository.findServiceScheduleByIdAvailable(request.id);
+
+  if (!serviceSchedule) {
+    throw new ResponseError(404, NOT_FOUND_ERROR, [{ resources: ['service schedule not found'] }]);
+  }
+  return serviceSchedule;
 };
 
 const createServiceSchedule = async (request) => {
