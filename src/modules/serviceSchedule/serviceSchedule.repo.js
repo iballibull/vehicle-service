@@ -89,15 +89,19 @@ const findAllServiceSchedules = async ({ startDate, endDate, page = 1, perPage =
 };
 
 const findAllServiceSchedulesAvailable = async ({ startDate, endDate, page = 1, perPage = 10 }) => {
-  const where = {
-    remainingQuota: { gt: 0 },
-  };
-
   const today = startOfDay(new Date());
   const minAllowedDate = new Date(today);
   minAllowedDate.setDate(today.getDate() + 1);
 
-  if ((startDate && startDate < minAllowedDate) || (endDate && endDate < minAllowedDate)) {
+  if (startDate && !endDate) {
+    endDate = startDate;
+  }
+
+  if (!startDate && endDate) {
+    startDate = endDate;
+  }
+
+  if (endDate && endDate < minAllowedDate) {
     return {
       data: [],
       meta: {
@@ -109,24 +113,17 @@ const findAllServiceSchedulesAvailable = async ({ startDate, endDate, page = 1, 
     };
   }
 
-  if (startDate && !endDate) {
-    endDate = startDate;
+  if (!startDate || startDate < minAllowedDate) {
+    startDate = minAllowedDate;
   }
 
-  if (!startDate && endDate) {
-    startDate = endDate;
-  }
-
-  if (startDate && endDate) {
-    where.serviceDate = {
+  const where = {
+    remainingQuota: { gt: 0 },
+    serviceDate: {
       gte: startDate,
       lte: endDate,
-    };
-  } else {
-    where.serviceDate = {
-      gte: minAllowedDate,
-    };
-  }
+    },
+  };
 
   const skip = (page - 1) * perPage;
   const take = Number(perPage);
