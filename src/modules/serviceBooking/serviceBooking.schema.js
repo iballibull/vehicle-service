@@ -12,6 +12,12 @@ const create = Joi.object({
     .required(),
 }).required();
 
+const updateStatus = Joi.object({
+  id: Joi.string().uuid().required(),
+  status: Joi.string().valid('menunggu_konfirmasi', 'konfirmasi_batal', 'konfirmasi_datang', 'tidak_datang', 'datang').required(),
+}).required();
+
 export default {
   create,
+  updateStatus,
 };

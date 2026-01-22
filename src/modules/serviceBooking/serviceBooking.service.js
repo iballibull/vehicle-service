@@ -48,6 +48,56 @@ const createServiceBooking = async (request) => {
   });
 };
 
+const updateStatusServiceBooking = async (request) => {
+  const { id, status } = request;
+
+  return prisma.$transaction(async (tx) => {
+    const serviceBooking = await serviceBookingRepo.findByIdTransaction(tx, id);
+
+    if (!serviceBooking) {
+      throw new ResponseError(404, NOT_FOUND_ERROR, [{ resources: ['service booking not found'] }]);
+    }
+
+    const schedule = serviceBooking.serviceSchedule;
+    let remainingQuota = schedule.remainingQuota;
+
+    const wasCancelled = serviceBooking.status === 'konfirmasi_batal';
+    const willBeCancelled = status === 'konfirmasi_batal';
+
+    if (serviceBooking.status === status) {
+      return serviceBooking;
+    }
+
+    if (!wasCancelled && willBeCancelled) {
+      remainingQuota += 1;
+    }
+
+    if (wasCancelled && !willBeCancelled) {
+      if (remainingQuota <= 0) {
+        throw new ResponseError(400, VALIDATION_ERROR, [{ resources: ['no remaining quota available'] }]);
+      }
+      remainingQuota -= 1;
+    }
+
+    await serviceBookingRepo.updateStatusServiceBooking(tx, {
+      id,
+      status,
+    });
+
+    await serviceScheduleRepo.updateServiceSchedule(tx, {
+      id: schedule.id,
+      remainingQuota,
+      quota: schedule.quota,
+      serviceDate: schedule.serviceDate,
+    });
+
+    const booking = await serviceBookingRepo.findByIdTransaction(tx, id);
+
+    return booking;
+  });
+};
+
 export default {
   createServiceBooking,
+  updateStatusServiceBooking,
 };

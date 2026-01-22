@@ -20,6 +20,6 @@ router.use(authenticateToken);
 router.get('/schedules', serviceScheduleController.fetchServiceSchedule);
 router.get('/schedules/:id', serviceScheduleController.findServiceScheduleById);
 router.post('/schedules', serviceScheduleController.createServiceSchedule);
-router.put('/schedules/:id', serviceScheduleController.updateServiceSchedule);
+router.patch('/bookings/:id', serviceBookingController.updateStatusServiceBooking);
 
 export default router;

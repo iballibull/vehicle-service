@@ -29,7 +29,15 @@ const findByIdTransaction = async (tx, id) => {
   });
 };
 
+const updateStatusServiceBooking = async (tx, { id, status, remainingQuota }) => {
+  return await tx.serviceBooking.update({
+    where: { id },
+    data: { status, remainingQuota },
+  });
+};
+
 export default {
   createServiceBooking,
   findByIdTransaction,
+  updateStatusServiceBooking,
 };
