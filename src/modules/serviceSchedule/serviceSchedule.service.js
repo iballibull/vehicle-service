@@ -1,7 +1,8 @@
 import serviceScheduleRepository from './serviceSchedule.repo.js';
 import { safeDate } from '../../utils/date.util.js';
-import { NOT_FOUND_ERROR, SCHEDULE_EXISTS, CANNOT_UPDATE_SCHEDULE, INVALID_QUOTA } from '../../constants/error.constant.js';
+import { NOT_FOUND_ERROR, SCHEDULE_EXISTS, VALIDATION_ERROR } from '../../constants/error.constant.js';
 import { ResponseError } from '../../errors/response.error.js';
+import { prisma } from '../../config/prisma.config.js';
 
 const getServiceSchedule = async (request) => {
   let startDate = request.startDate ? safeDate(request.startDate) : null;
@@ -47,62 +48,66 @@ const createServiceSchedule = async (request) => {
   request.serviceDate = safeDate(request.serviceDate);
   request.remainingQuota = request.quota;
 
-  const schedule = await serviceScheduleRepository.findServiceScheduleByDate();
+  return prisma.$transaction(async (tx) => {
+    const schedule = await serviceScheduleRepository.findServiceScheduleByDate(tx, request.serviceDate);
 
-  if (schedule) {
-    throw new ResponseError(400, SCHEDULE_EXISTS, [{ serviceDate: 'schedule already exists for the given date.' }]);
-  }
+    if (schedule) {
+      throw new ResponseError(400, SCHEDULE_EXISTS, [{ serviceDate: 'schedule already exists for the given date.' }]);
+    }
 
-  return serviceScheduleRepository.createServiceSchedule(request);
+    return serviceScheduleRepository.createServiceSchedule(tx, request);
+  });
 };
 
 const updateServiceSchedule = async (request) => {
-  const serviceSchedule = await serviceScheduleRepository.findServiceScheduleByIdWithBookings(request.id);
+  return prisma.$transaction(async (tx) => {
+    const serviceSchedule = await serviceScheduleRepository.findServiceScheduleByIdWithBookings(tx, request.id);
 
-  if (!serviceSchedule) {
-    throw new ResponseError(404, NOT_FOUND_ERROR, [{ resources: ['service schedule not found'] }]);
-  }
+    if (!serviceSchedule) {
+      throw new ResponseError(404, NOT_FOUND_ERROR, [{ resources: ['service schedule not found'] }]);
+    }
 
-  const activeBookingCount = serviceSchedule._count.bookings;
+    const activeBookingCount = serviceSchedule._count.bookings;
 
-  if (request.quota < activeBookingCount) {
-    throw new ResponseError(400, INVALID_QUOTA, [
-      { quota: [`cannot set quota to ${request.quota}, there are already ${activeBookingCount} active bookings.`] },
-    ]);
-  }
+    if (request.quota < activeBookingCount) {
+      throw new ResponseError(400, VALIDATION_ERROR, [
+        { quota: [`cannot set quota to ${request.quota}, there are already ${activeBookingCount} active bookings.`] },
+      ]);
+    }
 
-  const isDateChange = request.serviceDate !== serviceSchedule.serviceDate.toISOString().split('T')[0];
+    const isDateChange = request.serviceDate !== serviceSchedule.serviceDate.toISOString().split('T')[0];
 
-  if (isDateChange && !activeBookingCount) {
-    throw new ResponseError(400, CANNOT_UPDATE_SCHEDULE, [
-      {
-        schedule: [`cannot change date, there are ${activeBookingCount} active bookings on this schedule.`],
-      },
-    ]);
-  }
+    if (isDateChange && !activeBookingCount) {
+      throw new ResponseError(400, VALIDATION_ERROR, [
+        {
+          schedule: [`cannot change date, there are ${activeBookingCount} active bookings on this schedule.`],
+        },
+      ]);
+    }
 
-  let scheduleWithDate;
+    let scheduleWithDate;
 
-  if (request.serviceDate) {
-    request.serviceDate = safeDate(request.serviceDate);
-    scheduleWithDate = await serviceScheduleRepository.findServiceScheduleByDate(request.serviceDate);
-  }
+    if (request.serviceDate) {
+      request.serviceDate = safeDate(request.serviceDate);
+      scheduleWithDate = await serviceScheduleRepository.findServiceScheduleByDate(tx, request.serviceDate);
+    }
 
-  if (scheduleWithDate && scheduleWithDate.id !== request.id) {
-    throw new ResponseError(400, SCHEDULE_EXISTS, [{ serviceDate: 'schedule already exists for the given date.' }]);
-  }
+    if (scheduleWithDate && scheduleWithDate.id !== request.id) {
+      throw new ResponseError(400, VALIDATION_ERROR, [{ serviceDate: 'schedule already exists for the given date.' }]);
+    }
 
-  let newRemainingQuota = 0;
+    let newRemainingQuota = 0;
 
-  if (request.quota) {
-    newRemainingQuota = request.quota - activeBookingCount;
-  }
+    if (request.quota) {
+      newRemainingQuota = request.quota - activeBookingCount;
+    }
 
-  return serviceScheduleRepository.updateServiceSchedule({
-    id: request.id,
-    serviceDate: request.serviceDate || serviceSchedule.serviceDate,
-    quota: request.quota ?? serviceSchedule.quota,
-    remainingQuota: newRemainingQuota ?? serviceSchedule.remainingQuota,
+    return serviceScheduleRepository.updateServiceSchedule(tx, {
+      id: request.id,
+      serviceDate: request.serviceDate || serviceSchedule.serviceDate,
+      quota: request.quota ?? serviceSchedule.quota,
+      remainingQuota: newRemainingQuota ?? serviceSchedule.remainingQuota,
+    });
   });
 };
 

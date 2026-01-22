@@ -137,8 +137,8 @@ const findAllServiceSchedulesAvailable = async ({ startDate, endDate, page = 1, 
   };
 };
 
-const findServiceScheduleByDate = async (serviceDate) => {
-  const serviceSchedule = await prisma.serviceSchedule.findFirst({
+const findServiceScheduleByDate = async (tx, serviceDate) => {
+  const serviceSchedule = await tx.serviceSchedule.findFirst({
     where: {
       serviceDate,
     },
@@ -147,8 +147,8 @@ const findServiceScheduleByDate = async (serviceDate) => {
   return serviceSchedule;
 };
 
-const createServiceSchedule = async ({ serviceDate, quota, remainingQuota }) => {
-  const newServiceSchedule = await prisma.serviceSchedule.create({
+const createServiceSchedule = async (tx, { serviceDate, quota, remainingQuota }) => {
+  const newServiceSchedule = await tx.serviceSchedule.create({
     data: {
       serviceDate,
       quota,
@@ -159,7 +159,7 @@ const createServiceSchedule = async ({ serviceDate, quota, remainingQuota }) => 
   return newServiceSchedule;
 };
 
-const findServiceScheduleByIdWithBookings = async (id) => {
+const findServiceScheduleByIdWithBookings = async (tx, id) => {
   const serviceSchedule = await prisma.serviceSchedule.findUnique({
     where: { id },
     include: {
@@ -178,8 +178,8 @@ const findServiceScheduleByIdWithBookings = async (id) => {
   return serviceSchedule;
 };
 
-const updateServiceSchedule = async ({ id, serviceDate, quota, remainingQuota }) => {
-  const updatedServiceSchedule = await prisma.serviceSchedule.update({
+const updateServiceSchedule = async (tx, { id, serviceDate, quota, remainingQuota }) => {
+  const updatedServiceSchedule = await tx.serviceSchedule.update({
     where: {
       id,
     },
