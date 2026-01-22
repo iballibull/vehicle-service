@@ -27,7 +27,20 @@ const updateStatusServiceBooking = async (req, res, next) => {
   }
 };
 
+const findById = async (req, res, next) => {
+  try {
+    const request = validate(serviceBookingSchema.id, req.params);
+
+    const data = await serviceBookingService.findById(request);
+
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   createServiceBooking,
   updateStatusServiceBooking,
+  findById,
 };

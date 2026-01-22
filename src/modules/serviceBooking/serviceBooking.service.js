@@ -97,7 +97,19 @@ const updateStatusServiceBooking = async (request) => {
   });
 };
 
+const findById = async (request) => {
+  const { id } = request;
+  const serviceBooking = await serviceBookingRepo.findById(id);
+
+  if (!serviceBooking) {
+    throw new ResponseError(404, NOT_FOUND_ERROR, [{ resources: ['service booking not found'] }]);
+  }
+
+  return serviceBooking;
+};
+
 export default {
   createServiceBooking,
   updateStatusServiceBooking,
+  findById,
 };

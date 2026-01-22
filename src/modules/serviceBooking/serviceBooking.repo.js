@@ -29,6 +29,15 @@ const findByIdTransaction = async (tx, id) => {
   });
 };
 
+const findById = async (id) => {
+  return await prisma.serviceBooking.findUnique({
+    where: { id },
+    include: {
+      serviceSchedule: true,
+    },
+  });
+};
+
 const updateStatusServiceBooking = async (tx, { id, status, remainingQuota }) => {
   return await tx.serviceBooking.update({
     where: { id },
@@ -40,4 +49,5 @@ export default {
   createServiceBooking,
   findByIdTransaction,
   updateStatusServiceBooking,
+  findById,
 };

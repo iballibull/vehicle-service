@@ -17,7 +17,12 @@ const updateStatus = Joi.object({
   status: Joi.string().valid('menunggu_konfirmasi', 'konfirmasi_batal', 'konfirmasi_datang', 'tidak_datang', 'datang').required(),
 }).required();
 
+const id = Joi.object({
+  id: Joi.string().uuid().required(),
+}).required();
+
 export default {
   create,
   updateStatus,
+  id,
 };
