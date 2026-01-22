@@ -31,6 +31,21 @@ const findServiceScheduleByIdAvailable = async (id) => {
   return serviceSchedule;
 };
 
+const findServiceScheduleByIdAvailableTransaction = async (tx, id) => {
+  const minAllowedDate = startOfDay(new Date());
+  minAllowedDate.setDate(minAllowedDate.getDate() + 1);
+
+  const serviceSchedule = await tx.serviceSchedule.findFirst({
+    where: {
+      id,
+      serviceDate: { gte: minAllowedDate },
+      remainingQuota: { gt: 0 },
+    },
+  });
+
+  return serviceSchedule;
+};
+
 const findAllServiceSchedules = async ({ startDate, endDate, page = 1, perPage = 10 }) => {
   const where = {};
 
@@ -205,4 +220,5 @@ export default {
   updateServiceSchedule,
   findServiceScheduleByDate,
   findServiceScheduleByIdWithBookings,
+  findServiceScheduleByIdAvailableTransaction,
 };
