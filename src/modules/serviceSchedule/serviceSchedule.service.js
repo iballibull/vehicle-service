@@ -1,6 +1,6 @@
 import serviceScheduleRepository from './serviceSchedule.repo.js';
 import { safeDate } from '../../utils/date.util.js';
-import { NOT_FOUND_ERROR, SCHEDULE_EXISTS, VALIDATION_ERROR } from '../../constants/error.constant.js';
+import { NOT_FOUND_ERROR, VALIDATION_ERROR } from '../../constants/error.constant.js';
 import { ResponseError } from '../../errors/response.error.js';
 import { prisma } from '../../config/prisma.config.js';
 
@@ -52,7 +52,7 @@ const createServiceSchedule = async (request) => {
     const schedule = await serviceScheduleRepository.findServiceScheduleByDate(tx, request.serviceDate);
 
     if (schedule) {
-      throw new ResponseError(400, SCHEDULE_EXISTS, [{ serviceDate: 'schedule already exists for the given date.' }]);
+      throw new ResponseError(400, VALIDATION_ERROR, [{ serviceDate: 'schedule already exists for the given date.' }]);
     }
 
     return serviceScheduleRepository.createServiceSchedule(tx, request);
