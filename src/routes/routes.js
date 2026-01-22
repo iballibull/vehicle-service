@@ -22,5 +22,6 @@ router.get('/schedules/:id', serviceScheduleController.findServiceScheduleById);
 router.post('/schedules', serviceScheduleController.createServiceSchedule);
 router.patch('/bookings/:id', serviceBookingController.updateStatusServiceBooking);
 router.get('/bookings/:id', serviceBookingController.findById);
+router.get('/bookings', serviceBookingController.fetchServiceBookings);
 
 export default router;

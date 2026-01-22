@@ -108,8 +108,29 @@ const findById = async (request) => {
   return serviceBooking;
 };
 
+const getServiceBookings = async (request) => {
+  let { startDate, endDate, status } = request;
+
+  if (startDate && !endDate) endDate = startDate;
+  if (!startDate && endDate) startDate = endDate;
+
+  if (status && !Array.isArray(status)) {
+    status = [status];
+  }
+
+  return serviceBookingRepo.findAllServiceBookings({
+    startDate,
+    endDate,
+    status,
+    page: request.page,
+    perPage: request.perPage,
+    search: request.search,
+  });
+};
+
 export default {
   createServiceBooking,
   updateStatusServiceBooking,
   findById,
+  getServiceBookings,
 };
